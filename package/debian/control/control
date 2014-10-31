@@ -1,0 +1,11 @@
+Package: riak
+Version: 2.0.1-1
+Architecture: amd64
+Maintainer: Basho Package Maintainer <packaging@basho.com>
+Installed-Size: 76721
+Depends: libc6 (>= 2.10), libgcc1 (>= 1:4.1.1), libncurses5 (>= 5.5-5~), libpam0g (>= 0.99.7.1), libssl1.0.0 (>= 1.0.0), libstdc++6 (>= 4.6), libtinfo5, adduser, logrotate
+Section: net
+Priority: extra
+Homepage: http://basho.com
+Description: Riak is a distributed data store
+  Riak is a distributed data store
