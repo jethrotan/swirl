@@ -27,7 +27,7 @@
 -endif.
 
 %% api
--export([start_link/1,
+-export([start_link/2,
          stop/1]).
 
 %% gen_server
@@ -39,17 +39,21 @@
          code_change/3]).
 
 %% records and state
--record(state, {
-         }).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% api
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% @doc start the channel with swarm & peer info (typically the udp endpoint)
--spec start_link(list()) -> {ok, pid()}.
-start_link(Args) ->
-    gen_server:start_link(?MODULE, Args, []).
+%% @doc start the channel using provided peer info (typically the udp endpoint)
+%% for channel 0, i.e. the initial handshake contact from a remote peer, we
+%% effectively block any re-registration by registering this name, until the
+%% first received registration completes successfully.
+-spec start_link(ppspp_datagram:endpoint(), ppspp_options:swarm_id()) ->
+    ignore | {error,_} | {ok,pid()}.
+start_link(Peer, Swarm_id)  ->
+    Uri = ppspp_datagram:get_peer_uri(Peer),
+    Registration = {via, gproc, {n, l, {?MODULE, Uri}}},
+    gen_server:start_link(Registration, ?MODULE, [Peer, Swarm_id], []).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% @doc Stops the server.
@@ -74,8 +78,21 @@ where_is(Channel)  ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% callbacks
 
-init([]) ->
-    {ok, #state{}}.
+%% @doc as the channel id is not known at time of process spawning, it is
+%% done during init phase, using gproc. The following values are registered:
+%% - {{peer, Peer URI}, Peer}
+%% - {{channel, Channel id}, Swarm ID}
+%% Peer is the opaque data type used in the datagram module that uniquely
+%% identifies a remote peer.
+%% TODO change registration of peers to allow multiplexed peers per remote
+%% address, and therefore multiple swarms on the same IP.
+%% TODO enable updating the registration of the URI to match the acquired
+%% channel that will accommodate all future datagrams from this peer.
+
+-spec init(ppsp_options:swarm()) ->
+    {ok, ppspp_channel:channel()}.
+init(Swarm_id) ->
+    ppspp_channel:acquire(Swarm_id).
 
 handle_call(_Request, _From, State) ->
     {reply, ignored, State}.
