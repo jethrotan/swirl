@@ -30,6 +30,8 @@
 -export([handle/1,
          handle/2,
          handle_datagram/2,
+         get_peer_uri/1,
+         get_peer_channel/1,
          unpack/3,
          pack/1]).
 
@@ -73,6 +75,21 @@ build_endpoint(udp, Socket, IP, Port, Channel) ->
                                              {socket, Socket} ])},
     ?DEBUG("dgram: received udp from ~s~n", [Endpoint_as_URI]),
     Endpoint.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% @doc given an endpoint, returns the associated uri for comparison.
+%% @spec
+%% @end
+
+-spec get_peer_uri(endpoint()) -> string().
+get_peer_uri(Peer) -> get_peer_info(uri, Peer).
+
+-spec get_peer_channel(endpoint()) -> ppspp_channel:channel().
+get_peer_channel(Peer) -> get_peer_info(channel, Peer).
+
+-spec get_peer_info(uri, endpoint()) -> any().
+get_peer_info(Option, {endpoint, Peer_Dict}) ->
+    orddict:fetch(Option, Peer_Dict).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% @doc receives datagram from peer_worker, parses & delivers to matching channel
