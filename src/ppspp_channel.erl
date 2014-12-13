@@ -31,9 +31,9 @@
          unpack_with_rest/1,
          pack/1,
          where_is/1,
-         acquire_channel/1,
-         release_channel/1,
-         channel_to_string/1,
+         acquire/1,
+         release/1,
+         get_channel_id/1,
          handle/1]).
 
 -opaque channel() :: {channel, channel_option()}.
@@ -60,25 +60,24 @@ unpack_channel(Binary) ->
     {Channel, _Rest} = unpack_with_rest(Binary),
     Channel.
 
--spec channel_to_string(channel()) -> string().
-channel_to_string(_Channel = {channel, Channel}) ->
-    string:to_lower(integer_to_list(Channel, 16)).
+-spec get_channel_id(channel()) -> non_neg_integer().
+get_channel_id(_Channel = {channel, Channel}) -> Channel.
 
 -spec pack(ppspp_message:message()) -> binary().
 pack(_Message) -> <<>>.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% acquire_channel
+%% acquire
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% @doc allow requesting process to register an unused channel
+%% @doc allow requesting channel_worker to register an unused channel
 %% <p> Ensure that the channel can  be searched for using the swarm id.
 %% A increasing delay is imposed on requesting channels as usage increases
 %% proportional to the previous failed tries, as a way of controlling overall
 %% load for new requesters. The timeout is approximately 60 seconds.
 %% </p>
 %% @end
--spec acquire_channel(ppspp_options:swarm_id()) -> channel().
-acquire_channel(Swarm_id) ->
+-spec acquire(ppsp_options:swarm_id()) -> channel().
+acquire(Swarm_id) ->
     Channel = find_free_channel(Swarm_id, 0),
     {channel, Channel}.
 
@@ -89,7 +88,7 @@ find_free_channel(Swarm_id, Failed_Tries) when Failed_Tries < 30 ->
     timer:sleep(Failed_Tries * 1000),
     <<Maybe_Free_Channel:?DWORD>> = crypto:strong_rand_bytes(4),
     Channel = {channel, Maybe_Free_Channel},
-    Key = {n, l, Channel},
+    Key = {n, l, Channel, Swarm_id},
     Self = self(),
     %% channel is unique only when returned pid matches self, otherwise
     %% just try again for a new random channel and increased timeout
@@ -99,15 +98,15 @@ find_free_channel(Swarm_id, Failed_Tries) when Failed_Tries < 30 ->
     end.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% release_channel
+%% release
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% @doc allow requesting process to release an assigned channel
 %% <p> This function will crash if the channel was not registered to this
 %% process, as gproc returns badarg in this case.
 %% </p>
 %% @end
--spec release_channel(channel()) -> ok.
-release_channel(Channel) ->
+-spec release(channel()) -> ok.
+release(Channel) ->
     case gproc:unreg({n,l, Channel}) of
         true -> ok;
         _ -> {error, ppspp_channel_free_unassigned_channel}
