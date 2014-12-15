@@ -76,24 +76,23 @@ pack(_Message) -> <<>>.
 %% load for new requesters. The timeout is approximately 60 seconds.
 %% </p>
 %% @end
--spec acquire(ppsp_options:swarm_id()) -> channel().
+-spec acquire(ppspp_options:swarm_id()) -> channel().
 acquire(Swarm_id) ->
-    Channel = find_free_channel(Swarm_id, 0),
-    {channel, Channel}.
+    {channel, _Channel} = find_free_channel(Swarm_id, 0).
 
--spec find_free_channel(ppspp_options:swarm_id(), pos_integer()) ->
+-spec find_free_channel(ppspp_options:swarm_id(), non_neg_integer()) ->
     channel() | {error, any()}.
 find_free_channel(_, 30) -> {error, ppspp_channel_no_channels_free};
 find_free_channel(Swarm_id, Failed_Tries) when Failed_Tries < 30 ->
     timer:sleep(Failed_Tries * 1000),
     <<Maybe_Free_Channel:?DWORD>> = crypto:strong_rand_bytes(4),
     Channel = {channel, Maybe_Free_Channel},
-    Key = {n, l, Channel, Swarm_id},
+    Key = {n, l, Channel},
     Self = self(),
     %% channel is unique only when returned pid matches self, otherwise
     %% just try again for a new random channel and increased timeout
     case gproc:reg_or_locate(Key, Swarm_id) of
-        {Self, Swarm_id} -> Maybe_Free_Channel;
+        {Self, Swarm_id} -> Channel;
         {_, _ } -> find_free_channel(Swarm_id, Failed_Tries + 1)
     end.
 

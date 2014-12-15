@@ -92,7 +92,7 @@ where_is(Channel)  ->
 -spec init(ppsp_options:swarm()) ->
     {ok, ppspp_channel:channel()}.
 init(Swarm_id) ->
-    ppspp_channel:acquire(Swarm_id).
+    {ok, ppspp_channel:acquire(Swarm_id)}.
 
 handle_call(_Request, _From, State) ->
     {reply, ignored, State}.

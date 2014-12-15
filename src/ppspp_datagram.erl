@@ -64,7 +64,7 @@ peer_to_string(Peer, Port) ->
                      ppspp_channel:channel()) ->  endpoint().
 
 build_endpoint(udp, Socket, IP, Port, Channel) ->
-    Channel_Name = ppspp_channel:channel_to_string(Channel),
+    Channel_Name = convert:int_to_hex(ppspp_channel:get_channel_id(Channel)),
     Peer_as_String = peer_to_string(IP, Port),
     Endpoint_as_URI = lists:concat([ Peer_as_String, "#", Channel_Name]),
     Endpoint = {endpoint, orddict:from_list([{ip, IP},
@@ -157,7 +157,7 @@ handle_datagram(_Datagram = {datagram, _Dgram_as_Dict}, _Swarm_Options) ->
 unpack(Raw_Datagram, _Endpoint, Swarm_Options) ->
     {Channel, Maybe_Messages} = ppspp_channel:unpack_with_rest(Raw_Datagram),
     ?DEBUG("dgram: received on channel ~p~n",
-           [ppspp_channel:channel_to_string(Channel)]),
+           [convert:int_to_hex(ppspp_channel:get_channel_id(Channel))]),
     Parsed_Messages = ppspp_message:unpack(Maybe_Messages, Swarm_Options),
     Parsed_Datagram = orddict:from_list([Channel, {messages, Parsed_Messages}]),
     {datagram, Parsed_Datagram}.
